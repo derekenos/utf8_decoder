@@ -10,6 +10,7 @@ See: https://en.wikipedia.org/wiki/UTF-8#Encoding
 REPLACEMENT_CHAR = '\ufffd'
 STRICT, REPLACE, IGNORE = 0, 1, 2
 MAX_CODEPOINT = 0x10ffff
+EOF = ''
 
 ###############################################################################
 # Exceptions
@@ -55,17 +56,14 @@ class UTF8Decoder:
             self.stuffed_byte = None
             return b
         # Read one byte from the stream and increment the byte counter.
-        c = self.stream.read(1)
+        b = self.stream.read(1)
         self.byte_num += 1
         # On the first read, assert that the stream yields bytes-type values.
         if self.first_read:
-            if not isinstance(c, bytes):
+            if not isinstance(b, bytes):
                 raise AssertionError('UTF8Decoder requires a bytes stream')
             self.first_read = False
-        # Raise StopIteration when the stream is exhausted.
-        if c == b'':
-            raise StopIteration
-        return c
+        return b
 
     def error(self, num_consumed_bytes=1):
         """Handle a decoding error as determined by the value of self.errors.
@@ -90,8 +88,13 @@ class UTF8Decoder:
             self.num_pending_replacement -= 1
             return REPLACEMENT_CHAR
 
-        # Read the next, leading byte from the stream and convert it to an int.
-        leading_byte = ord(self.read_one())
+        # Read the next, leading byte from the stream. If it's an empty string
+        # indicating the end of the stream, return it, otherwise convert it to
+        # an int.
+        x = self.read_one()
+        if x == b'':
+            return EOF
+        leading_byte = ord(x)
         # If the high bit is clear, return the single-byte char.
         if leading_byte & 0b10000000 == 0:
             return chr(leading_byte)
@@ -133,12 +136,13 @@ class UTF8Decoder:
         # value.
         bytes_remaining = num_bytes - 1
         while bytes_remaining:
-            try:
-                # Read the next byte from the stream and convert it to an int.
-                byte = ord(self.read_one())
-            except StopIteration:
-                # ERROR - stream exhausted / missing continuation byte
-                return self.error(num_bytes - bytes_remaining)
+            # Read the next, leading byte from the stream. If it's an empty
+            # string indicating the end of the stream, return it, otherwise
+            # convert it to an int.
+            x = self.read_one()
+            if x == b'':
+                return EOF
+            byte = ord(x)
             # Check that this is a continuation byte.
             if byte & 0b11000000 != 0b10000000:
                 # ERROR - not a continuation byte
