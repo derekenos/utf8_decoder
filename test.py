@@ -2,8 +2,8 @@
 from io import BytesIO
 from sys import stdout
 
-import utf8_decoder
-from utf8_decoder import (
+from __init__ import (
+    REPLACE,
     InvalidUTF8Encoding,
     UTF8Decoder,
 )
@@ -38,7 +38,7 @@ def test_stress_test():
     # https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
     input_fh = open('test_data/UTF-8-test.txt', 'rb')
     expected_fh = open('test_data/UTF-8-test.txt.expected', 'r', encoding='utf-8')
-    decoder = UTF8Decoder(input_fh, errors=utf8_decoder.REPLACE)
+    decoder = UTF8Decoder(input_fh, errors=REPLACE)
     for c in decoder:
         _assertEqual(c, expected_fh.read(1))
 
@@ -47,7 +47,7 @@ def test_i_can_eat_glass():
     # http://kermitproject.org/utf8.html#glass
     original_fh = open('test_data/i_can_eat_glass.txt', 'r', encoding='utf-8')
     decoder_fh = open('test_data/i_can_eat_glass.txt', 'rb')
-    decoder = UTF8Decoder(decoder_fh, errors=utf8_decoder.REPLACE)
+    decoder = UTF8Decoder(decoder_fh, errors=REPLACE)
     for c in decoder:
         _assertEqual(c, original_fh.read(1))
 
